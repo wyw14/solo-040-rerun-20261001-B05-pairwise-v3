@@ -74,6 +74,13 @@ func (c *Coordinator) Status(chamberID string) model.EmergencyRecord {
 	return record
 }
 
+// Restore applies a journaled emergency record during replay.
+func (c *Coordinator) Restore(record model.EmergencyRecord) {
+	c.mu.Lock()
+	c.records[record.ChamberID] = record
+	c.mu.Unlock()
+}
+
 func (c *Coordinator) Active(chamberID string) bool {
 	status := c.Status(chamberID).Status
 	return status == model.EmergencyDraining

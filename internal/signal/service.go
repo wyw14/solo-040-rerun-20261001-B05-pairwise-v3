@@ -64,4 +64,12 @@ func (s *Service) History() []Handoff {
 	return result
 }
 
+// RestoreHandoff appends a journaled handoff during replay without
+// re-validating against the transit lookup.
+func (s *Service) RestoreHandoff(handoff Handoff) {
+	s.mu.Lock()
+	s.handoffs = append(s.handoffs, handoff)
+	s.mu.Unlock()
+}
+
 func (s *Service) States() []model.SignalState { return s.store.List() }

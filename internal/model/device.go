@@ -97,9 +97,20 @@ const (
 	GateOpening GatePosition = "opening"
 	GateClosed  GatePosition = "closed"
 	GateClosing GatePosition = "closing"
+	// GateUnknown marks a direction with no committed observation yet. It is
+	// never a substitute for a real field reading and never counts as sealed.
+	GateUnknown GatePosition = "unknown"
 )
 
 func (p GatePosition) Sealed() bool { return p == GateClosed }
+
+// GateObservation is the journaled record of a field-reported gate position.
+type GateObservation struct {
+	ChamberID  string       `json:"chamber_id"`
+	Direction  Direction    `json:"direction"`
+	Position   GatePosition `json:"position"`
+	ObservedAt time.Time    `json:"observed_at"`
+}
 
 type LevelSample struct {
 	CycleID    uuid.UUID `json:"cycle_id"`

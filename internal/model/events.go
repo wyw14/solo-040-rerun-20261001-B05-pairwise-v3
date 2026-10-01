@@ -17,6 +17,7 @@ const (
 	EventCycleAdvanced    EventType = "cycle.advanced"
 	EventCommandQueued    EventType = "command.queued"
 	EventCommandSettled   EventType = "command.settled"
+	EventGateObserved     EventType = "gate.observed"
 	EventSignalChanged    EventType = "signal.changed"
 	EventLeaseChanged     EventType = "lease.changed"
 	EventEmergencyStarted EventType = "emergency.started"

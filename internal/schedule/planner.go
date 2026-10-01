@@ -66,6 +66,14 @@ func (p *Planner) replace(plan model.ConvoyPlan) {
 	p.mu.Unlock()
 }
 
+// Restore reinserts a journaled plan during replay without enqueueing or
+// recording new events.
+func (p *Planner) Restore(plan model.ConvoyPlan) {
+	p.mu.Lock()
+	p.plans[plan.ID] = plan.Clone()
+	p.mu.Unlock()
+}
+
 func (p *Planner) Active(chamberID string) []model.ConvoyPlan {
 	p.mu.RLock()
 	var result []model.ConvoyPlan

@@ -48,7 +48,7 @@ func gateObservationHandler(runtime *Runtime) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, errors.New("invalid direction or position"))
 			return
 		}
-		if err := runtime.Interlocks.Observe(chi.URLParam(r, "chamberID"), direction, input.Position, runtime.Now()); err != nil {
+		if err := runtime.Interlocks.Observe(r.Context(), chi.URLParam(r, "chamberID"), direction, input.Position, runtime.Now()); err != nil {
 			writeError(w, http.StatusConflict, err)
 			return
 		}

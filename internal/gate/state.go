@@ -14,7 +14,9 @@ type PositionRecord struct {
 	UpdatedAt time.Time          `json:"updated_at"`
 }
 
-// State keeps observed positions separate from accepted commands.
+// State keeps observed positions separate from accepted commands. Directions
+// without any committed observation stay unknown instead of borrowing a
+// fabricated sealed default.
 type State struct {
 	mu        sync.RWMutex
 	positions map[string]map[model.Direction]PositionRecord
@@ -32,8 +34,8 @@ func (s *State) ensure(chamberID string) map[model.Direction]PositionRecord {
 	positions, ok := s.positions[chamberID]
 	if !ok {
 		positions = map[model.Direction]PositionRecord{
-			model.DirectionUpstream:   {Direction: model.DirectionUpstream, Position: model.GateClosed},
-			model.DirectionDownstream: {Direction: model.DirectionDownstream, Position: model.GateClosed},
+			model.DirectionUpstream:   {Direction: model.DirectionUpstream, Position: model.GateUnknown},
+			model.DirectionDownstream: {Direction: model.DirectionDownstream, Position: model.GateUnknown},
 		}
 		s.positions[chamberID] = positions
 	}

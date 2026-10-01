@@ -122,3 +122,18 @@ func (c *Commands) Get(commandID uuid.UUID) (model.DeviceCommand, bool) {
 	c.mu.RUnlock()
 	return command, ok
 }
+
+// Restore reinserts a journaled command during replay, keeping per-device
+// epochs monotonic so post-recovery commands never reuse a committed epoch.
+func (c *Commands) Restore(command model.DeviceCommand) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	key := epochKey(command.ChamberID, command.Device)
+	if c.nextEpoch[key] < command.Epoch {
+		c.nextEpoch[key] = command.Epoch
+	}
+	if _, ok := c.byID[command.ID]; !ok {
+		c.byChamber[command.ChamberID] = append(c.byChamber[command.ChamberID], command.ID)
+	}
+	c.byID[command.ID] = command
+}

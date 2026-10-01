@@ -68,6 +68,6 @@ func (c *Coordinator) Reservation(chamberID string) (Reservation, bool) {
 	return c.arbiter.Current(chamberID)
 }
 
-func (c *Coordinator) Observe(chamberID string, direction model.Direction, position model.GatePosition, _ time.Time) error {
-	return c.gates.Observe(chamberID, direction, position)
+func (c *Coordinator) Observe(ctx context.Context, chamberID string, direction model.Direction, position model.GatePosition, _ time.Time) error {
+	return c.gates.Observe(ctx, chamberID, direction, position)
 }

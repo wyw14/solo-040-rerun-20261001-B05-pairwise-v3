@@ -38,6 +38,13 @@ func createPlanHandler(runtime *Runtime) http.HandlerFunc {
 			}
 			vessels = append(vessels, vessel)
 		}
+		// Admission is granted only from observed sealed gates, so a plan that
+		// cannot be admitted right now is rejected before it leaves traces in
+		// the queue, the journal or the transit coordinator.
+		if !runtime.GateState.Sealed(input.ChamberID) {
+			writeError(w, http.StatusConflict, errors.New("chamber gates are not observed sealed"))
+			return
+		}
 		plan, err := runtime.Schedule.Create(r.Context(), input.ChamberID, input.Direction, vessels)
 		if err != nil {
 			writeError(w, http.StatusConflict, err)

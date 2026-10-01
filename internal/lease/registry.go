@@ -87,3 +87,21 @@ func (r *Registry) Snapshot() []model.Lease {
 	r.mu.RUnlock()
 	return result
 }
+
+// Restore reinserts a journaled lease during replay, keeping fencing tokens
+// monotonic so post-recovery assignments never reuse a committed token.
+func (r *Registry) Restore(lease model.Lease) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.nextToken[lease.VesselID] < lease.FencingToken {
+		r.nextToken[lease.VesselID] = lease.FencingToken
+	}
+	r.leases[lease.VesselID] = lease
+}
+
+// RestoreRelease drops a vessel lease during replay.
+func (r *Registry) RestoreRelease(vesselID uuid.UUID) {
+	r.mu.Lock()
+	delete(r.leases, vesselID)
+	r.mu.Unlock()
+}

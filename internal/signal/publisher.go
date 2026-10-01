@@ -58,14 +58,14 @@ func (p *Publisher) Compensate(ctx context.Context, chamberID string, publicatio
 	var combined error
 	for index := len(publication.Published) - 1; index >= 0; index-- {
 		vesselID := publication.Published[index]
+		compensation := model.SignalCompensation{VesselID: vesselID, Compensated: true}
 		if previous, ok := publication.Previous[vesselID]; ok {
-			p.store.Set(previous.VesselID, previous.CycleID, previous.Generation, previous.Aspect, p.now())
+			restored := p.store.Set(previous.VesselID, previous.CycleID, previous.Generation, previous.Aspect, p.now())
+			compensation.Restored = &restored
 		} else {
 			p.store.Remove(vesselID)
 		}
-		_, err := p.recorder.Record(ctx, chamberID, model.EventSignalChanged, publication.CycleID, publication.Generation, map[string]any{
-			"vessel_id": vesselID, "compensated": true,
-		})
+		_, err := p.recorder.Record(ctx, chamberID, model.EventSignalChanged, publication.CycleID, publication.Generation, compensation)
 		combined = errors.Join(combined, err)
 	}
 	return combined

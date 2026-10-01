@@ -74,6 +74,14 @@ type SignalState struct {
 	UpdatedAt  time.Time    `json:"updated_at"`
 }
 
+// SignalCompensation journals the rollback of a published signal so replay can
+// rebuild the exact store state instead of guessing what was reverted.
+type SignalCompensation struct {
+	VesselID    uuid.UUID    `json:"vessel_id"`
+	Compensated bool         `json:"compensated"`
+	Restored    *SignalState `json:"restored,omitempty"`
+}
+
 type EmergencyStatus string
 
 const (
