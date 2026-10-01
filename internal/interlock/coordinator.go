@@ -3,7 +3,6 @@ package interlock
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/wyw14/cry-96/internal/gate"
 	"github.com/wyw14/cry-96/internal/model"
@@ -68,6 +67,6 @@ func (c *Coordinator) Reservation(chamberID string) (Reservation, bool) {
 	return c.arbiter.Current(chamberID)
 }
 
-func (c *Coordinator) Observe(chamberID string, direction model.Direction, position model.GatePosition, _ time.Time) error {
-	return c.gates.Observe(chamberID, direction, position)
+func (c *Coordinator) Observe(ctx context.Context, chamberID string, direction model.Direction, position model.GatePosition) error {
+	return c.gates.Observe(ctx, chamberID, direction, position)
 }

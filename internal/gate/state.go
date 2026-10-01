@@ -31,9 +31,11 @@ func NewState(chambers ...string) *State {
 func (s *State) ensure(chamberID string) map[model.Direction]PositionRecord {
 	positions, ok := s.positions[chamberID]
 	if !ok {
+		// Default to unobserved. A restart must not invent a "closed" reading:
+		// until a committed event supplies a position, the gate state is unknown.
 		positions = map[model.Direction]PositionRecord{
-			model.DirectionUpstream:   {Direction: model.DirectionUpstream, Position: model.GateClosed},
-			model.DirectionDownstream: {Direction: model.DirectionDownstream, Position: model.GateClosed},
+			model.DirectionUpstream:   {Direction: model.DirectionUpstream, Position: model.GateUnobserved},
+			model.DirectionDownstream: {Direction: model.DirectionDownstream, Position: model.GateUnobserved},
 		}
 		s.positions[chamberID] = positions
 	}
@@ -44,9 +46,30 @@ func (s *State) Observe(chamberID string, direction model.Direction, position mo
 	if chamberID == "" || !direction.Valid() {
 		return errors.New("valid chamber and direction are required")
 	}
+	if !position.Observed() {
+		return errors.New("observed gate position must be a real field reading")
+	}
 	s.mu.Lock()
 	positions := s.ensure(chamberID)
 	positions[direction] = PositionRecord{Direction: direction, Position: position, UpdatedAt: now.UTC()}
+	s.mu.Unlock()
+	return nil
+}
+
+// Restore rehydrates a gate position exclusively from a committed event or
+// snapshot. The recovery folds inputs in committed order, so each call is a
+// later reading and simply replaces the previous one; no timestamp tie can
+// discard a settled state the way a clock-based guard might.
+func (s *State) Restore(chamberID string, direction model.Direction, position model.GatePosition, observedAt time.Time) error {
+	if chamberID == "" || !direction.Valid() {
+		return errors.New("valid chamber and direction are required")
+	}
+	if !position.Observed() {
+		return errors.New("restored gate position must be a committed field reading")
+	}
+	s.mu.Lock()
+	positions := s.ensure(chamberID)
+	positions[direction] = PositionRecord{Direction: direction, Position: position, UpdatedAt: observedAt.UTC()}
 	s.mu.Unlock()
 	return nil
 }

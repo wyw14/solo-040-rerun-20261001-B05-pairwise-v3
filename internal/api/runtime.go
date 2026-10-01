@@ -13,6 +13,7 @@ import (
 	"github.com/wyw14/cry-96/internal/lease"
 	"github.com/wyw14/cry-96/internal/model"
 	"github.com/wyw14/cry-96/internal/monitor"
+	"github.com/wyw14/cry-96/internal/recovery"
 	"github.com/wyw14/cry-96/internal/safety"
 	"github.com/wyw14/cry-96/internal/schedule"
 	"github.com/wyw14/cry-96/internal/signal"
@@ -42,7 +43,7 @@ type Runtime struct {
 	Snapshot        *monitor.Snapshot
 	Incidents       *monitor.IncidentReview
 	Health          *monitor.HealthRegistry
-	Recovery        *cycle.Recovery
+	Recovery        *recovery.Recovery
 	Chambers        []string
 	Now             func() time.Time
 }
@@ -93,8 +94,11 @@ func NewRuntime(ctx context.Context, dataDirectory string) (*Runtime, error) {
 	safetyService := safety.NewService(safetyCoordinator, cycleCoordinator)
 	signalService.BindTransitLookup(cycleCoordinator)
 	replayer := journal.NewReplayer(store)
-	recovery := cycle.NewRecovery(replayer, cycleCoordinator)
-	if _, err := recovery.RestoreAll(ctx); err != nil {
+	restorer := recovery.New(
+		replayer, cycleCoordinator, gateState, gateCommands, admissionQueue,
+		planner, signalStore, leaseRegistry, safetyCoordinator, hydraulicsController,
+	)
+	if _, err := restorer.RestoreAll(ctx); err != nil {
 		return nil, err
 	}
 	health := monitor.NewHealthRegistry()
@@ -115,7 +119,7 @@ func NewRuntime(ctx context.Context, dataDirectory string) (*Runtime, error) {
 		Interlocks: interlockCoordinator, Cycles: cycleCoordinator, CycleService: cycleService,
 		Leases: leaseService, LeaseSweeper: leaseSweeper, Safety: safetyService,
 		Snapshot:  monitor.NewSnapshot(cycleCoordinator, gateState, admissionService, signalService, safetyService, now),
-		Incidents: monitor.NewIncidentReview(store), Health: health, Recovery: recovery,
+		Incidents: monitor.NewIncidentReview(store), Health: health, Recovery: restorer,
 		Chambers: chambers, Now: now,
 	}, nil
 }

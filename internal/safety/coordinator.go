@@ -78,3 +78,11 @@ func (c *Coordinator) Active(chamberID string) bool {
 	status := c.Status(chamberID).Status
 	return status == model.EmergencyDraining
 }
+
+// Restore rehydrates an emergency record from a committed event. Events arrive
+// in order, so the last record (draining/completed/failed) wins.
+func (c *Coordinator) Restore(record model.EmergencyRecord) {
+	c.mu.Lock()
+	c.records[record.ChamberID] = record
+	c.mu.Unlock()
+}

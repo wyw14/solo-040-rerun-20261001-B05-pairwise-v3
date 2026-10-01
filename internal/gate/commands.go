@@ -122,3 +122,24 @@ func (c *Commands) Get(commandID uuid.UUID) (model.DeviceCommand, bool) {
 	c.mu.RUnlock()
 	return command, ok
 }
+
+// Restore rehydrates a command from a committed event. Queued and settled
+// events describe the same command identity, so replay is idempotent: the
+// first sighting registers it and the highest epoch seen seeds the counter so
+// post-restart commands never reuse an epoch.
+func (c *Commands) Restore(command model.DeviceCommand) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	key := epochKey(command.ChamberID, command.Device)
+	if existing, ok := c.byID[command.ID]; ok {
+		if !existing.State.Terminal() || command.State.Terminal() {
+			c.byID[command.ID] = command
+		}
+	} else {
+		c.byID[command.ID] = command
+		c.byChamber[command.ChamberID] = append(c.byChamber[command.ChamberID], command.ID)
+	}
+	if command.Epoch > c.nextEpoch[key] {
+		c.nextEpoch[key] = command.Epoch
+	}
+}

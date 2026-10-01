@@ -87,3 +87,21 @@ func (r *Registry) Snapshot() []model.Lease {
 	r.mu.RUnlock()
 	return result
 }
+
+// Restore rehydrates a lease from a committed event and seeds the fencing
+// token counter so post-restart assignments never reuse a token.
+func (r *Registry) Restore(lease model.Lease) {
+	r.mu.Lock()
+	r.leases[lease.VesselID] = lease
+	if lease.FencingToken > r.nextToken[lease.VesselID] {
+		r.nextToken[lease.VesselID] = lease.FencingToken
+	}
+	r.mu.Unlock()
+}
+
+// RestoreRelease rehydrates a committed lease release.
+func (r *Registry) RestoreRelease(vesselID uuid.UUID) {
+	r.mu.Lock()
+	delete(r.leases, vesselID)
+	r.mu.Unlock()
+}

@@ -85,6 +85,15 @@ func (q *Queue) Restore(chamberID string, entries []QueueEntry) {
 	q.mu.Unlock()
 }
 
+// Replay replaces a chamber queue with the exact membership rebuilt from the
+// event stream, preserving released marks. Unlike Restore it does not reset or
+// prepend anything: post-restart queue content must equal committed events.
+func (q *Queue) Replay(chamberID string, entries []QueueEntry) {
+	q.mu.Lock()
+	q.entries[chamberID] = append([]QueueEntry(nil), entries...)
+	q.mu.Unlock()
+}
+
 func (q *Queue) List(chamberID string) []QueueEntry {
 	q.mu.RLock()
 	result := append([]QueueEntry(nil), q.entries[chamberID]...)

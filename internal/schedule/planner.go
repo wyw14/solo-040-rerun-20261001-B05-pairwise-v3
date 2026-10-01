@@ -66,6 +66,9 @@ func (p *Planner) replace(plan model.ConvoyPlan) {
 	p.mu.Unlock()
 }
 
+// Restore rehydrates a plan from a committed plan event during replay.
+func (p *Planner) Restore(plan model.ConvoyPlan) { p.replace(plan) }
+
 func (p *Planner) Active(chamberID string) []model.ConvoyPlan {
 	p.mu.RLock()
 	var result []model.ConvoyPlan

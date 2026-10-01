@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/wyw14/cry-96/internal/journal"
 	"github.com/wyw14/cry-96/internal/model"
 )
@@ -69,11 +70,19 @@ func (c *Controller) Confirm(ctx context.Context, ack model.DeviceAck) (model.De
 	return command, err
 }
 
-func (c *Controller) Observe(chamberID string, direction model.Direction, position model.GatePosition) error {
+func (c *Controller) Observe(ctx context.Context, chamberID string, direction model.Direction, position model.GatePosition) error {
 	if chamberID == "" {
 		return errors.New("chamber is required")
 	}
-	return c.state.Observe(chamberID, direction, position, c.now())
+	observedAt := c.now().UTC()
+	if err := c.state.Observe(chamberID, direction, position, observedAt); err != nil {
+		return err
+	}
+	// Field telemetry is itself a committed observation: without this event a
+	// restart would lose a real gate reading and fall back to "unobserved".
+	reading := PositionRecord{Direction: direction, Position: position, UpdatedAt: observedAt}
+	_, err := c.recorder.Record(ctx, chamberID, model.EventGateObserved, uuid.Nil, 0, reading)
+	return err
 }
 
 func (c *Controller) State() *State       { return c.state }

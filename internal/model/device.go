@@ -93,13 +93,22 @@ func (a DeviceAck) Matches(command DeviceCommand) bool {
 type GatePosition string
 
 const (
-	GateOpen    GatePosition = "open"
-	GateOpening GatePosition = "opening"
-	GateClosed  GatePosition = "closed"
-	GateClosing GatePosition = "closing"
+	GateOpen       GatePosition = "open"
+	GateOpening    GatePosition = "opening"
+	GateClosed     GatePosition = "closed"
+	GateClosing    GatePosition = "closing"
+	GateUnobserved GatePosition = "unobserved"
 )
 
+// Sealed reports a verified closed position. An unobserved gate must never be
+// treated as sealed: doing so turns "we have no observation yet" into a false
+// physical claim after a restart.
 func (p GatePosition) Sealed() bool { return p == GateClosed }
+
+// Observed reports whether a real field position backs the value.
+func (p GatePosition) Observed() bool {
+	return p == GateOpen || p == GateOpening || p == GateClosed || p == GateClosing
+}
 
 type LevelSample struct {
 	CycleID    uuid.UUID `json:"cycle_id"`
